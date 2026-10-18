@@ -39,8 +39,7 @@ explicitem a pergunta de negócio, notas metodológicas e design responsivo.
 
 Garanta que o site funcione ao abrir index.html localmente e no GitHub Pages.
 Inclua estados vazios, acessibilidade de teclado e aviso de que o trabalho é
-independente da marca. Forneça README, evidências de interface sem filtro,
-com filtros aplicados e versão mobile, além de instruções de publicação.
+independente da marca. 
 ```
 
 ## Refinamentos incorporados à versão final
