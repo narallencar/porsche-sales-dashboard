@@ -81,7 +81,6 @@ O pedido que deu origem ao trabalho e o **prompt final reconstituído**, além d
 porsche-sales-dashboard/
 ├── index.html                       # Dashboard autônoma, com os dados dentro do HTML
 ├── README.md                        # Explicação do projeto, metodologia e evidências
-├── .nojekyll                        # Publicação simples no GitHub Pages
 ├── data/
 │   └── porsche_sales_clean.csv     # 100 registros, apenas colunas aprovadas
 ├── docs/
@@ -98,14 +97,6 @@ porsche-sales-dashboard/
 ## Executar a dashboard
 
 Abra **`index.html` diretamente no navegador**. Não é necessário Python, Node.js, servidor web, instalação de pacotes nem conexão com a internet para visualizar os gráficos.
-
-Opcionalmente, para conferir o CSV e atualizar o HTML após substituir a base por **outro CSV com as mesmas 11 colunas**:
-
-```bash
-python scripts/update_dashboard.py
-```
-
-O script valida os campos esperados e os tipos antes de substituir os dados no HTML. Ele não sanitiza planilhas cruas contendo informações sensíveis: **a sanitização deve ocorrer ANTES de publicar**.
 
 ## Limitações e próximos passos
 
