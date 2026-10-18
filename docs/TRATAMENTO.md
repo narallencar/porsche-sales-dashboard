@@ -1,62 +1,195 @@
-# Tratamento dos dados e regras da análise
+# Porsche Sales Sanitization Schema
 
-## Origem e escopo
+> Columns Data map
 
-O insumo recebido foi `Planilha base Porsche (sanitizada).xlsx`. A planilha já foi fornecida como **sanitizada**, por isso este projeto não afirma ter validado, reconstruído ou aplicado regras da base crua original. A etapa adicional consistiu em selecionar os campos de trabalho, preparar tipos para consumo em JavaScript, conferir métricas e manter o CSV tratado como referência.
+## Canonical input columns
 
-## Dicionário de dados publicado
+| Column | Required | Description | Example raw values |
+|---|---:|---|---|
+| `sale_id` | yes | Unique sale record ID | `1`, `86` |
+| `sale_date` | yes | Raw sales date | `2024-13-05`, `02/05/24`, `July 15th, 2024` |
+| `customer_name` | yes | Customer name | `John  Smith`, `MARY johnson` |
+| `porsche_model` | yes | Porsche model and trim | `911 Carrera`, `Macan Electric` |
+| `model_year` | yes | Vehicle model year | `2023`, `20-20`, `two thousand twenty two` |
+| `sale_price` | yes | Sale price in messy USD formats | `$985,000.00`, `188k USD` |
+| `vehicle_mileage` | yes | Vehicle mileage in messy miles/km formats | `12,500 miles`, `KM 15.200`, `new` |
+| `payment_method` | yes | Payment method | `CreditCard`, `bank-transfer`, `crypto payment` |
+| `city` | yes | City | `new york`, `San Jose` |
+| `state` | yes | US state name or abbreviation | `ny`, `California` |
+| `salesperson` | yes | Salesperson name | `William  Clark`, `SARAH lee` |
+| `delivery_status` | yes | Delivery status | `Delivered!!!`, `in-transit`, `DELIVERD` |
 
-| Campo | Tipo no HTML | Papel na análise |
-| --- | --- | --- |
-| `sale_id` | inteiro | Identificador técnico da linha, não do cliente |
-| `sale_date` | texto ISO `AAAA-MM-DD` ou `null` | Informação temporal, sujeita a qualidade |
-| `porsche_model` | texto | Dimensão / filtro / ranking de modelos |
-| `model_year` | inteiro | Ano do veículo, usado no filtro de ano |
-| `sale_price_usd` | número | Preço da venda/pedido, em dólares americanos |
-| `vehicle_mileage_mi` | número | Quilometragem registrada, em milhas |
-| `payment_method` | texto | Modalidade de pagamento / gráfico de frequência |
-| `city` | texto | Cidade informada |
-| `state` | texto | Sigla do estado norte-americano / filtro e ranking |
-| `delivery_status` | texto | Status do pedido/venda, para separar cancelamentos |
-| `date_valid` | booleano | Identifica se `sale_date` foi reconhecida como válida |
+## Sanitized output columns
 
-**Campos excluídos da publicação:** não há nomes, e-mails, endereços de clientes, telefone ou informações de vendedores no CSV e no conjunto JSON usado pelo HTML. Não há dados pessoais necessários às três perguntas escolhidas.
+| Source | Output | Format |
+|---|---|---|
+| `sale_date` | `SaleDateSanitized` | `YYYY-MM-DD` or `INVALID` |
+| `porsche_model` | `PorscheModelSanitized` | Canonical Porsche model/trim label |
+| `model_year` | `ModelYearSanitized` | Four-digit year or `INVALID` |
+| `sale_price` | `SalesPriceSanitized` | USD amount as decimal string with two decimals |
+| `vehicle_mileage` | `VehicleMileageSanitized` | Integer miles |
+| `payment_method` | `PayMethodSanitized` | Controlled label |
+| `city` | `CitySanitized` | Title-cased city |
+| `state` | `StateSanitized` | USPS two-letter code or `INVALID` |
+| `delivery_status` | `DeliveryStatusSanitized` | Controlled label |
 
-## Transformações e validações
+## Sanitization rules
 
-1. Conservar apenas as **11 colunas explicitamente listadas** acima na versão de publicação.
-2. Usar `model_year` e `sale_id` como **inteiros**; `sale_price_usd` e `vehicle_mileage_mi` como **números**, sem símbolos de moeda nem fórmulas.
-3. Usar data no formato ISO (`YYYY-MM-DD`) somente quando validada. Para uma data inválida, manter o campo ausente (`null` no HTML, célula vazia no CSV) e `date_valid=false`.
-4. Conservar a grafia existente de modelos, siglas de estados, métodos de pagamento e status; não inventar categorias.
-5. Preservar os cancelamentos no CSV, mas excluir `delivery_status="Cancelled"` do universo de cálculo. Não excluir pedidos pendentes/em trânsito por padrão; essa decisão fica visível na nota metodológica.
-6. Embutir registros JSON em `index.html`. Sem fontes remotas, a dashboard funciona mesmo se aberta localmente.
+### Dates
 
-## Auditoria em 18/10/2026
+Normalize to ISO `YYYY-MM-DD`.
 
-| Teste | Resultado |
-| --- | ---: |
-| Registros totais | 100 |
-| Cancelados | 7 |
-| Elegíveis para o painel | 93 |
-| Datas inválidas ou ausentes | 24 |
-| Datas futuras relativamente a 18/10/2026 | 20 |
-| Estados no recorte elegível | 32 |
-| Modelos distintos no recorte elegível | 39 |
-| Métodos de pagamento no recorte elegível | 9 |
+Accept common formats:
 
-**Atenção:** datas futuras foram **mantidas** e contabilizadas no indicador de qualidade. Não são interpretadas como transações que efetivamente ocorreram até 18/10/2026. A métrica denominada “Receita registrada” é a soma descritiva do campo `sale_price_usd` e inclui pedidos em diferentes estágios, não faturamento contábil. Os dados são demonstrativos.
+- `YYYY-MM-DD`
+- `YYYY/MM/DD`
+- `YYYY.MM.DD`
+- `MM/DD/YYYY`
+- `MM/DD/YY`
+- `MM-DD-YY`
+- `Month DDth, YYYY`
+- `Mon DDth YYYY`
 
-## Definições dos indicadores
+Invalid calendar dates such as `2024-13-05`, `2024-02-30`, `April 31st, 2024`, and `2027-06-40` must become `INVALID`.
 
-- **Volume de vendas:** contagem de registros que não têm status `Cancelled`, após filtros.
-- **Valor registrado:** soma de `sale_price_usd` dos registros elegíveis após filtros.
-- **Ticket médio:** valor registrado dividido pelo volume elegível (quando o volume é zero, a interface mostra travessão).
-- **Estados com vendas:** contagem de estados diferentes presentes no recorte.
-- **Modelo e estado líderes:** máximo de valor registrado agregado por categoria.
-- **Pagamentos:** contagem e percentual do número de registros elegíveis por forma de pagamento, não a soma financeira.
+### Porsche models
 
-## Atualização futura
+Normalize model names to canonical title case. Preserve valid trims such as:
 
-Para incorporar **outra base sanitizada** com o mesmo esquema, substitua `data/porsche_sales_clean.csv` e execute `python scripts/update_dashboard.py`. O script rejeita colunas extras, ausências de colunas obrigatórias, números inválidos, valores não positivos de preço, datas incoerentes e IDs repetidos; o HTML só é atualizado após a validação completa. Em seguida, teste e publique novamente o arquivo modificado.
+- `911 Carrera`
+- `911 Carrera S`
+- `911 Carrera GTS`
+- `911 Turbo`
+- `911 Turbo S`
+- `911 GT3`
+- `911 GT3 RS`
+- `911 Dakar`
+- `911 Targa 4`
+- `911 Targa 4S`
+- `718 Cayman`
+- `718 Cayman S`
+- `718 Cayman GT4 RS`
+- `718 Boxster`
+- `718 Boxster GTS`
+- `718 Spyder RS`
+- `Cayenne`
+- `Cayenne S`
+- `Cayenne Coupe`
+- `Cayenne E-Hybrid`
+- `Cayenne Turbo`
+- `Cayenne Turbo GT`
+- `Macan`
+- `Macan S`
+- `Macan T`
+- `Macan GTS`
+- `Macan Electric`
+- `Panamera`
+- `Panamera 4`
+- `Panamera 4S`
+- `Panamera Turbo`
+- `Panamera Turbo S`
+- `Panamera 4 E-Hybrid`
+- `Taycan`
+- `Taycan 4S`
+- `Taycan GTS`
+- `Taycan Turbo`
+- `Taycan Turbo S`
+- `Taycan Cross Turismo`
 
-O script **não recebe XLSX cru** e **não substitui uma política de privacidade ou o processo de sanitização**.
+Unknown models should be title-cased rather than dropped.
+
+### Model year
+
+Normalize to a four-digit year. Convert common text forms like `twenty twenty four` and formats like `20-24` or `20 24`. Values outside `1990` to `2035` should become `INVALID`.
+
+### Sales price
+
+Normalize to a decimal USD amount without symbols, commas, or text.
+
+Examples:
+
+- `$985,000.00` -> `985000.00`
+- `870000 USD` -> `870000.00`
+- `$645k` -> `645000.00`
+- `188k USD` -> `188000.00`
+- `eighty two thousand USD` -> `82000.00`
+- `two hundred thousand USD` -> `200000.00`
+
+### Vehicle mileage
+
+Normalize to integer miles.
+
+Examples:
+
+- `12,500 miles` -> `12500`
+- `Miles: 15,200` -> `15200`
+- `zero miles`, `new`, `0 mi`, `new car` -> `0`
+- `twelve thousand miles` -> `12000`
+
+If a value is explicitly labeled `KM`, convert kilometers to miles using `1 km = 0.621371 miles`, rounded to the nearest integer.
+
+### Payment method
+
+Normalize to one of:
+
+- `Credit Card`
+- `Debit Card`
+- `Bank Transfer`
+- `Wire Transfer`
+- `Financing`
+- `Lease`
+- `Cash`
+- `ACH Payment`
+- `Crypto Payment`
+
+Unknown payment methods should be title-cased.
+
+### City
+
+Normalize city names to title case and preserve known punctuation such as `St. Louis`.
+
+### State
+
+Normalize US states to USPS two-letter codes. Convert both names and abbreviations, case-insensitively.
+
+Examples:
+
+- `California` -> `CA`
+- `california` -> `CA`
+- `ca` -> `CA`
+- `New York` -> `NY`
+
+Unknown states should become `INVALID`.
+
+### Delivery status
+
+Normalize to one of:
+
+- `Delivered`
+- `Pending`
+- `In Transit`
+- `Cancelled`
+- `Awaiting Delivery`
+- `Awaiting Pickup`
+- `Pending Approval`
+- `Pending Review`
+- `Shipped`
+- `Awaiting Review`
+
+Handle punctuation, case, hyphenation, and common typo `DELIVERD`.
+
+## Quality checks
+
+After normalization, verify:
+
+- No original columns were removed.
+- Sanitized columns appear immediately after their source columns.
+- Dates are ISO format or `INVALID`.
+- State values are two-letter USPS codes or `INVALID`.
+- Mileage is integer miles.
+- Price is numeric with two decimals.
+- No new blank values are introduced in sanitized columns; use `INVALID` or normalized defaults instead.
+
+## Invalid handling
+
+Use `INVALID` when a value cannot be normalized safely. Never leave a sanitized field blank.
