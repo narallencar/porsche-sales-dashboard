@@ -2,7 +2,7 @@
 
 **Dashboard interativa de análise comercial | HTML, CSS e JavaScript | Portfólio de análise de dados**
 
-> **Status:** aplicação concluída e testada localmente. **A publicação no GitHub Pages ainda precisa ser ativada** na conta do proprietário deste repositório. As imagens abaixo demonstram a execução local, não um site já publicado.
+> **Status:** aplicação concluída e testada localmente. As imagens abaixo demonstram a execução local, não um site já publicado.
 
 ![Dashboard completa](assets/dashboard-completa.png)
 
@@ -106,34 +106,6 @@ python scripts/update_dashboard.py
 ```
 
 O script valida os campos esperados e os tipos antes de substituir os dados no HTML. Ele não sanitiza planilhas cruas contendo informações sensíveis: **a sanitização deve ocorrer ANTES de publicar**.
-
-## Publicar com GitHub Pages
-
-> Crie um repositório **público** chamado `porsche-sales-dashboard` em sua conta. Caso você use outro nome, substitua-o em todas as referências abaixo.
-
-1. Em [github.com/new](https://github.com/new), crie `porsche-sales-dashboard`, **Public**, preferencialmente sem gerar README adicional.
-2. No terminal, dentro da pasta que contém `index.html`, execute (com o seu próprio login GitHub):
-
-   ```bash
-   git init
-   git branch -M main
-   git add .
-   git commit -m "feat: create Porsche sales dashboard"
-   git remote add origin https://github.com/narallencar/porsche-sales-dashboard.git
-   git push -u origin main
-   ```
-
-   Alternativamente, envie os arquivos e pastas pela interface do GitHub, preservando os caminhos.
-
-3. No repositório: **Settings → Pages → Build and deployment → Deploy from a branch**; escolha **`main`** e **`/(root)`**, e clique em **Save**.
-4. Aguarde a primeira publicação e abra a URL indicada pelo GitHub Pages. Confirme que os quatro filtros funcionam no endereço publicado.
-5. Só depois de conferir o site, troque a indicação abaixo pelo URL validado e retire o aviso de **publicação pendente** no topo do README.
-
-**Endereço esperado após a publicação (AINDA NÃO VERIFICADO):** `https://narallencar.github.io/porsche-sales-dashboard/`
-
-**URL de repositório prevista, para submissão (somente depois de criar):** `https://github.com/narallencar/porsche-sales-dashboard`
-
-**Importante:** o link de entrega é o **do repositório**; o link do GitHub Pages demonstra o site funcionando.
 
 ## Limitações e próximos passos
 
